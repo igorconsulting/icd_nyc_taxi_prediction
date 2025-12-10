@@ -1,0 +1,62 @@
+name: feature-pipeline
+
+on:
+  # Executes every hour at minute 0 (top of the hour)
+  schedule:
+    - cron: '0 * * * *'
+
+  # Enables manual execution via the GitHub Actions UI
+  workflow_dispatch:
+
+env:
+  # Must remain aligned with the `requires-python` field in pyproject.toml
+  PYTHON_VERSION: "3.9"
+
+jobs:
+  feature_pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks out the repository so that all workflow steps
+      # have access to the source code and Makefile targets.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Installs the version of Python required by the project.
+      # The workflow should never assume the default runner Python version.
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # Installs uv — a modern tool that handles virtual environments,
+      # dependency resolution, and command execution in a unified way.
+      #
+      # Important:
+      #   - uv performs its own caching and does not require manual cache configuration.
+      #   - Installation is extremely fast and avoids the overhead of Poetry.
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+
+      # Synchronizes dependencies according to pyproject.toml.
+      #
+      #   --all-extras : ensures optional dependency groups are installed.
+      #   --group dev  : provides development tools (ruff, pytest, etc.)
+      #
+      # uv automatically manages the virtual environment and provides
+      # incremental installs, resulting in significantly faster workflows.
+      - name: Sync dependencies
+        run: uv sync --all-extras --group dev
+
+      # Executes the feature generation pipeline.
+      #
+      # All sensitive values (e.g., Hopsworks credentials) are injected
+      # through GitHub Secrets to ensure secure access during execution.
+      #
+      # The actual feature computation logic exists in the repository
+      # and is accessed through the Makefile entrypoint already adapted to uv.
+      - name: Run feature generation
+        env:
+          HOPSWORKS_PROJECT_NAME: ${{ secrets.HOPSWORKS_PROJECT_NAME }}
+          HOPSWORKS_API_KEY: ${{ secrets.HOPSWORKS_API_KEY }}
+        run: uv run make features

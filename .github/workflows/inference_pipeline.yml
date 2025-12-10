@@ -1,0 +1,74 @@
+name: inference-pipeline
+
+on:
+  # If you want to execute this workflow *after* the feature-pipeline completes,
+  # uncomment the block below. This creates a workflow-level DAG inside GitHub Actions.
+  #
+  # workflow_run:
+  #   workflows: ["feature-pipeline"]
+  #   types:
+  #     - completed
+  #
+  # Current schedule: runs every hour at minute 30.
+  schedule:
+    - cron: '30 * * * *'
+
+  # Allows manual triggering via the GitHub Actions UI.
+  workflow_dispatch:
+
+env:
+  # Must remain consistent with the project's `requires-python` specification.
+  PYTHON_VERSION: "3.9"
+
+jobs:
+  inference_pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Fetches the repository contents so that workflow logic
+      # (scripts, Makefile, configuration files) is available.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Sets up the desired Python version for the environment.
+      # This version is enforced by pyproject.toml and ensures consistent execution.
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # Installs uv — the unified environment manager and dependency resolver.
+      #
+      # Note:
+      #   - uv provides its own efficient caching layer.
+      #   - Manual cache configuration (as used for Poetry) is unnecessary.
+      #   - Installation is fast and does not require bootstrapping scripts.
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+
+      # Installs all dependencies defined in pyproject.toml.
+      #
+      # --all-extras ensures optional extras are available.
+      # --group dev installs auxiliary tools (ruff, pytest, etc.),
+      #   which are useful in CI environments where linting or debugging may occur.
+      #
+      # uv manages the environment automatically and performs incremental installs.
+      - name: Sync dependencies
+        run: uv sync --all-extras --group dev
+
+      # Runs the inference pipeline using the Makefile target adapted for uv.
+      #
+      # Secrets are injected at runtime to preserve security and isolate credentials.
+      # These may include:
+      #   - Hopsworks credentials for feature store access,
+      #   - Comet ML credentials for experiment tracking and logging.
+      #
+      # uv run ensures execution occurs inside the synchronized environment.
+      - name: Generate predictions batch
+        env:
+          HOPSWORKS_PROJECT_NAME: ${{ secrets.HOPSWORKS_PROJECT_NAME }}
+          HOPSWORKS_API_KEY: ${{ secrets.HOPSWORKS_API_KEY }}
+          COMET_ML_API_KEY: ${{ secrets.COMET_ML_API_KEY }}
+          COMET_ML_WORKSPACE: ${{ secrets.COMET_ML_WORKSPACE }}
+          COMET_ML_PROJECT_NAME: ${{ secrets.COMET_ML_PROJECT_NAME }}
+        run: uv run make inference
