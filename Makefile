@@ -1,37 +1,37 @@
-.PHONY: init features training inference backfill frontend-app monitoring-app lint format
+.PHONE: init features training inference frontend monitoring
 
-# Cria o ambiente e instala todas as dependências via uv
+# downloads Poetry and installs all dependencies from pyproject.toml
 init:
-	uv sync --all-extras --group dev
+	curl -sSL https://install.python-poetry.org | python3 -
+	poetry install
 
-# Gera novas features e persiste no feature store
+# generates new batch of features and stores them in the feature store
 features:
-	uv run python scripts/feature_pipeline.py
+	poetry run python scripts/feature_pipeline.py
 
-# Treina um novo modelo e registra no model registry
+# trains a new model and stores it in the model registry
 training:
-	uv run python scripts/training_pipeline.py
+	poetry run python scripts/training_pipeline.py
 
-# Gera predições e envia para o feature store
+# generates predictions and stores them in the feature store
 inference:
-	uv run python scripts/inference_pipeline.py
+	poetry run python scripts/inference_pipeline.py
 
-# Backfill do feature group com dados históricos
+# backfills the feature store with historical data
 backfill:
-	uv run python scripts/backfill_feature_group.py
+	poetry run python scripts/backfill_feature_group.py
 
-# Inicia a aplicação Streamlit
+# starts the Streamlit app
 frontend-app:
-	uv run streamlit run src/frontend.py
+	poetry run streamlit run src/frontend.py
 
 monitoring-app:
-	uv run streamlit run src/frontend_monitoring.py
+	poetry run streamlit run src/frontend_monitoring.py
 
-# Lint e format com ruff (instalado via uv add --dev)
 lint:
-	@echo "Fixing lint issues..."
-	uv run ruff check --fix .
+	@echo "Fixing linting issues..."
+	poetry run ruff check --fix .
 
 format:
-	@echo "Formatting Python code..."
-	uv run ruff format .
+	echo "Formatting Python code..."
+	poetry run ruff format .
