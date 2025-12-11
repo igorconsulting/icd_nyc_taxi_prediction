@@ -4,10 +4,10 @@ on:
   # If you want to execute this workflow *after* the feature-pipeline completes,
   # uncomment the block below. This creates a workflow-level DAG inside GitHub Actions.
   #
-  # workflow_run:
-  #   workflows: ["feature-pipeline"]
-  #   types:
-  #     - completed
+  workflow_run:
+    workflows: ["training-pipeline"]
+    types:
+      - completed
   #
   # Current schedule: runs every hour at minute 30.
   schedule:

@@ -1,6 +1,10 @@
 name: training-pipeline
 
 on:
+  workflow_run:
+    workflows: ["feature-pipeline"]
+    types:
+      - completed
   # Executes every Sunday at midnight UTC
   schedule:
     - cron: '0 0 * * 0'
