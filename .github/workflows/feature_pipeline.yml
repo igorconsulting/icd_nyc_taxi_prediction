@@ -37,7 +37,11 @@ jobs:
       #   - Installation is extremely fast and avoids the overhead of Poetry.
       - name: Install uv
         uses: astral-sh/setup-uv@v2
-
+      
+      # This line permanently exports PYTHONPATH for all subsequent steps.
+      - name: Configure PYTHONPATH
+        run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+      
       # Synchronizes dependencies according to pyproject.toml.
       #
       #   --all-extras : ensures optional dependency groups are installed.

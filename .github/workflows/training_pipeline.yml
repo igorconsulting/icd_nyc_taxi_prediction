@@ -37,7 +37,11 @@ jobs:
       # there is no need to manually configure caching layers for ~/.cache or ~/.local.
       - name: Install uv
         uses: astral-sh/setup-uv@v2
-
+      
+      # This line permanently exports PYTHONPATH for all subsequent steps.
+      - name: Configure PYTHONPATH
+        run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+        
       # Synchronizes all project dependencies defined in pyproject.toml.
       #
       # --all-extras installs optional dependency groups.

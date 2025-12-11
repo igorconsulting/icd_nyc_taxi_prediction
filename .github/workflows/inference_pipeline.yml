@@ -45,6 +45,10 @@ jobs:
       #   - Installation is fast and does not require bootstrapping scripts.
       - name: Install uv
         uses: astral-sh/setup-uv@v2
+      
+      # This line permanently exports PYTHONPATH for all subsequent steps.
+      - name: Configure PYTHONPATH
+        run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
       # Installs all dependencies defined in pyproject.toml.
       #
