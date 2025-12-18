@@ -293,5 +293,6 @@ Redistribution or commercial use requires explicit authorization.
 For academic inquiries or collaboration:
 
 **Igor Caetano Diniz**
-PhD Candidate, PUC-Rio
-Machine Learning Engineer
+PhD Candidate, PhD Student at PUC-Rio
+
+Machine Learning Engineer & Data Scientist
