@@ -7,6 +7,9 @@
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://icd-nyc-taxi-prediction.streamlit.app/)
 
+🚀 **Live Demo:** [icd-nyc-taxi-prediction.streamlit.app](https://icd-nyc-taxi-prediction.streamlit.app/)
+
+
 ## **1. Overview**
 
 This repository implements an end-to-end machine learning system designed to forecast taxi demand in New York City using temporal and geospatial information. The system automates:
