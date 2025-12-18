@@ -1,11 +1,5 @@
-import warnings
 import os
-
-os.environ["PYTHONWARNINGS"] = "ignore"
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("ignore", category=UserWarning)
-warnings.filterwarnings("ignore", category=FutureWarning)
-
+import warnings
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Optional, Tuple
@@ -28,6 +22,11 @@ from src.logger import get_logger
 from src.model import get_pipeline
 from src.model_registry_api import push_model_to_registry
 from src.paths import DATA_CACHE_DIR, PARENT_DIR
+
+os.environ['PYTHONWARNINGS'] = 'ignore'
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=UserWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 logger = get_logger()
 
@@ -165,12 +164,13 @@ def load_features_and_target(
             local_file = DATA_CACHE_DIR / 'features_and_target.parquet'
             features_and_target.to_parquet(local_file)
             logger.info(f'Saved features_and_target to local file at {local_file}')
-        except:
-            logger.info('Could not save features_and_target to local file')
-            pass
+        except Exception as e:
+            logger.info(f'Could not save features_and_target to local file: {e}')
 
     # make sure pickup_hour is a datetime column
-    features_and_target['pickup_hour'] = pd.to_datetime(features_and_target['pickup_hour'])
+    features_and_target['pickup_hour'] = pd.to_datetime(
+        features_and_target['pickup_hour']
+    )
 
     return features_and_target
 
@@ -185,15 +185,15 @@ def compute_cutoff_date(
     """
     min_date = features_and_target['pickup_hour'].min()
     max_date = features_and_target['pickup_hour'].max()
-    
+
     # Calculate cutoff as a point in the date range
     date_range = max_date - min_date
     cutoff_date = min_date + (date_range * train_ratio)
-    
+
     # Ensure timezone consistency
     if cutoff_date.tzinfo is None:
         cutoff_date = cutoff_date.tz_localize('UTC')
-    
+
     return cutoff_date
 
 
@@ -204,7 +204,7 @@ def train(
     """
     Trains model and pushes it to the model registry if it meets the minimum
     performance threshold.
-    
+
     Args:
         local_path_features_and_target: Path to local parquet file with features and targets.
         train_ratio: Ratio of data to use for training (default 0.8 = 80% train, 20% test).
@@ -226,13 +226,15 @@ def train(
     # compute cutoff date based on actual data range
     cutoff_date = compute_cutoff_date(features_and_target, train_ratio=train_ratio)
     logger.info(f'Splitting data into training and test sets with {cutoff_date=}')
-    logger.info(f'Data range: {features_and_target["pickup_hour"].min()} to {features_and_target["pickup_hour"].max()}')
-    
+    logger.info(
+        f'Data range: {features_and_target["pickup_hour"].min()} to {features_and_target["pickup_hour"].max()}'
+    )
+
     # split the data into training and validation sets
     X_train, y_train, X_test, y_test = split_data(
         features_and_target, cutoff_date=cutoff_date
     )
-    
+
     # Validate that we have enough data for training
     if len(X_train) < 10:
         raise ValueError(
@@ -240,7 +242,7 @@ def train(
             f"Data range is {features_and_target['pickup_hour'].min()} to {features_and_target['pickup_hour'].max()}. "
             f"Cutoff date is {cutoff_date}. Consider adjusting train_ratio or fetching more data."
         )
-    
+
     experiment.log_parameters(
         {
             'X_train_shape': X_train.shape,

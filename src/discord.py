@@ -6,12 +6,14 @@ from src.logger import get_logger
 
 logger = get_logger()
 
+
 def send_message_to_channel(message: str) -> None:
-    
     try:
         DISCORD_WEBHOOK_URL = os.environ['DISCORD_WEBHOOK_URL']
     except KeyError:
-        logger.warning('DISCORD_WEBHOOK_URL not found in environment variables. Skipping Discord notification.')
+        logger.warning(
+            'DISCORD_WEBHOOK_URL not found in environment variables. Skipping Discord notification.'
+        )
         return
 
     try:
