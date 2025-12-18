@@ -5,7 +5,7 @@ description = "NYC Taxi Demand Prediction and Monitoring System"
 authors = ["Igor <icaetanodiniz@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.9.7 || >3.9.7,<3.10"
+python = ">=3.9,!=3.9.7,<3.12"
 pandas = "^1.5.2"
 jupyter = "^1.0.0"
 pyarrow = "^10.0.1"
