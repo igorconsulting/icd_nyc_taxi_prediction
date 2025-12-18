@@ -18,3 +18,5 @@ data/
 .TODOS
 
 uv.lock
+poetry.lock
+poetry.lock.backup

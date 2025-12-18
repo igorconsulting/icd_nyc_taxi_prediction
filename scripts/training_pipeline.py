@@ -1,4 +1,11 @@
+import warnings
 import os
+
+os.environ["PYTHONWARNINGS"] = "ignore"
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Optional, Tuple
@@ -168,12 +175,39 @@ def load_features_and_target(
     return features_and_target
 
 
+def compute_cutoff_date(
+    features_and_target: pd.DataFrame,
+    train_ratio: float = 0.8,
+) -> pd.Timestamp:
+    """
+    Computes cutoff date based on the actual data range.
+    Uses train_ratio to split: 80% for training, 20% for testing by default.
+    """
+    min_date = features_and_target['pickup_hour'].min()
+    max_date = features_and_target['pickup_hour'].max()
+    
+    # Calculate cutoff as a point in the date range
+    date_range = max_date - min_date
+    cutoff_date = min_date + (date_range * train_ratio)
+    
+    # Ensure timezone consistency
+    if cutoff_date.tzinfo is None:
+        cutoff_date = cutoff_date.tz_localize('UTC')
+    
+    return cutoff_date
+
+
 def train(
     local_path_features_and_target: Optional[Path] = None,
+    train_ratio: float = 0.8,
 ) -> None:
     """
     Trains model and pushes it to the model registry if it meets the minimum
     performance threshold.
+    
+    Args:
+        local_path_features_and_target: Path to local parquet file with features and targets.
+        train_ratio: Ratio of data to use for training (default 0.8 = 80% train, 20% test).
     """
     logger.info('Start model training...')
 
@@ -189,18 +223,32 @@ def train(
     features_and_target = load_features_and_target(local_path_features_and_target)
     experiment.log_dataset_hash(features_and_target)
 
-    # split the data into training and validation sets
-    cutoff_date = pd.to_datetime(date.today() - timedelta(days=28), utc=True)
+    # compute cutoff date based on actual data range
+    cutoff_date = compute_cutoff_date(features_and_target, train_ratio=train_ratio)
     logger.info(f'Splitting data into training and test sets with {cutoff_date=}')
+    logger.info(f'Data range: {features_and_target["pickup_hour"].min()} to {features_and_target["pickup_hour"].max()}')
+    
+    # split the data into training and validation sets
     X_train, y_train, X_test, y_test = split_data(
         features_and_target, cutoff_date=cutoff_date
     )
+    
+    # Validate that we have enough data for training
+    if len(X_train) < 10:
+        raise ValueError(
+            f"Not enough training data: {len(X_train)} samples. "
+            f"Data range is {features_and_target['pickup_hour'].min()} to {features_and_target['pickup_hour'].max()}. "
+            f"Cutoff date is {cutoff_date}. Consider adjusting train_ratio or fetching more data."
+        )
+    
     experiment.log_parameters(
         {
             'X_train_shape': X_train.shape,
             'y_train_shape': y_train.shape,
             'X_test_shape': X_test.shape,
             'y_test_shape': y_test.shape,
+            'cutoff_date': str(cutoff_date),
+            'train_ratio': train_ratio,
         }
     )
 
