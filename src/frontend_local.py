@@ -1,7 +1,5 @@
-import tempfile
 import zipfile
 from datetime import datetime, timedelta
-from pathlib import Path
 
 import geopandas as gpd
 import numpy as np
@@ -27,7 +25,6 @@ progress_bar = st.sidebar.progress(0)
 N_STEPS = 6
 
 
-@st.cache_data
 def load_shape_data_file() -> gpd.geodataframe.GeoDataFrame:
     """
     Fetches remote file with shape data, that we later use to plot the
@@ -40,34 +37,21 @@ def load_shape_data_file() -> gpd.geodataframe.GeoDataFrame:
     Returns:
         GeoDataFrame: columns -> (OBJECTID	Shape_Leng	Shape_Area	zone	LocationID	borough	geometry)
     """
+    # download zip file
     URL = 'https://d37ci6vzurychx.cloudfront.net/misc/taxi_zones.zip'
-    
-    # Use temporary directory for Streamlit Cloud compatibility
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        tmp_path = Path(tmp_dir)
-        zip_path = tmp_path / 'taxi_zones.zip'
-        extract_path = tmp_path / 'taxi_zones'
-        
-        # Download zip file
-        response = requests.get(URL)
-        if response.status_code == 200:
-            with open(zip_path, 'wb') as f:
-                f.write(response.content)
-        else:
-            raise Exception(f'{URL} is not available (status code: {response.status_code})')
-        
-        # Verify it's a valid zip file
-        if not zipfile.is_zipfile(zip_path):
-            raise Exception(f'Downloaded file is not a valid zip file')
-        
-        # Unzip file
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_path)
-        
-        # Load and return shape file
-        gdf = gpd.read_file(extract_path / 'taxi_zones.shp').to_crs('epsg:4326')
-        
-    return gdf
+    response = requests.get(URL)
+    path = DATA_DIR / 'taxi_zones.zip'
+    if response.status_code == 200:
+        open(path, 'wb').write(response.content)
+    else:
+        raise Exception(f'{URL} is not available')
+
+    # unzip file
+    with zipfile.ZipFile(path, 'r') as zip_ref:
+        zip_ref.extractall(DATA_DIR / 'taxi_zones')
+
+    # load and return shape file
+    return gpd.read_file(DATA_DIR / 'taxi_zones/taxi_zones.shp').to_crs('epsg:4326')
 
 
 @st.cache_data
