@@ -1,10 +1,6 @@
 name: inference-pipeline
 
 on:
-  # workflow_run:
-  #   workflows: ["feature-pipeline"]
-  #   types:
-  #     - completed
   schedule:
     - cron: '30 * * * *'
 
@@ -23,15 +19,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    # Poetry cache depends on OS, Python version and Poetry version.
     - name: Cache Poetry cache
       uses: actions/cache@v3
-
       with:
         path: ~/.cache/pypoetry
         key: poetry-cache-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ env.POETRY_VERSION }}
     
-    # virtualenv cache should depends on OS, Python version and `poetry.lock` (and optionally workflow files).
     - name: Cache Packages
       uses: actions/cache@v3
       with:
@@ -58,5 +51,10 @@ jobs:
         COMET_ML_API_KEY: ${{ secrets.COMET_ML_API_KEY }}
         COMET_ML_WORKSPACE: ${{ secrets.COMET_ML_WORKSPACE }}
         COMET_ML_PROJECT_NAME: ${{ secrets.COMET_ML_PROJECT_NAME }}
-      run: make inference
-  
+      run: |
+        for attempt in 1 2 3; do
+          echo "Attempt $attempt of 3"
+          make inference && exit 0 || sleep 60
+        done
+        echo "All attempts failed"
+        exit 1
